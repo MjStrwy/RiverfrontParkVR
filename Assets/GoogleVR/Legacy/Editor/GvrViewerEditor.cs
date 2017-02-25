@@ -27,8 +27,8 @@ public class GvrViewerEditor : Editor {
   GUIContent vrModeLabel = new GUIContent("VR Mode Enabled",
       "Sets whether VR mode is enabled.");
 
-  GUIContent distortionCorrectionLabel = new GUIContent("Distortion Correction",
-      "The distortion correction method performed by the SDK.");
+  GUIContent distortionCorrectionLabel = new GUIContent("Distortion Correction Enabled",
+      "Sets whether distortion correction is enabled.");
 
   GUIContent stereoScreenScale = new GUIContent("Stereo Screen Scale",
       "The screen resolution is multiplied by this value when creating the " +
@@ -67,8 +67,8 @@ public class GvrViewerEditor : Editor {
     EditorGUILayout.LabelField("General Settings", headingStyle);
     gvrViewer.VRModeEnabled =
         EditorGUILayout.Toggle(vrModeLabel, gvrViewer.VRModeEnabled);
-   gvrViewer.DistortionCorrection = (GvrViewer.DistortionCorrectionMethod)
-        EditorGUILayout.EnumPopup(distortionCorrectionLabel, gvrViewer.DistortionCorrection);
+    gvrViewer.DistortionCorrectionEnabled =
+      EditorGUILayout.Toggle(distortionCorrectionLabel, gvrViewer.DistortionCorrectionEnabled);
     float oldScale = gvrViewer.StereoScreenScale;
     float newScale = EditorGUILayout.Slider(stereoScreenScale, oldScale, 0.25f, 2.0f);
     if (!Mathf.Approximately(newScale, oldScale)) {

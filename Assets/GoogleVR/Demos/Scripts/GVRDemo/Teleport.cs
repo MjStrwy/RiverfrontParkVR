@@ -16,11 +16,8 @@ using UnityEngine;
 using System.Collections;
 
 [RequireComponent(typeof(Collider))]
-public class Teleport : MonoBehaviour {
+public class Teleport : MonoBehaviour, IGvrGazeResponder {
   private Vector3 startingPosition;
-
-  public Material inactiveMaterial;
-  public Material gazedAtMaterial;
 
   void Start() {
     startingPosition = transform.localPosition;
@@ -35,10 +32,6 @@ public class Teleport : MonoBehaviour {
   }
 
   public void SetGazedAt(bool gazedAt) {
-    if (inactiveMaterial != null && gazedAtMaterial != null) {
-      GetComponent<Renderer>().material = gazedAt ? gazedAtMaterial : inactiveMaterial;
-      return;
-    }
     GetComponent<Renderer>().material.color = gazedAt ? Color.green : Color.red;
   }
 
@@ -46,10 +39,46 @@ public class Teleport : MonoBehaviour {
     transform.localPosition = startingPosition;
   }
 
+  public void ToggleVRMode() {
+    GvrViewer.Instance.VRModeEnabled = !GvrViewer.Instance.VRModeEnabled;
+  }
+
+  public void ToggleDistortionCorrection() {
+    GvrViewer.Instance.DistortionCorrectionEnabled =
+      !GvrViewer.Instance.DistortionCorrectionEnabled;
+  }
+
+#if !UNITY_HAS_GOOGLEVR || UNITY_EDITOR
+  public void ToggleDirectRender() {
+    GvrViewer.Controller.directRender = !GvrViewer.Controller.directRender;
+  }
+#endif  //  !UNITY_HAS_GOOGLEVR || UNITY_EDITOR
+
   public void TeleportRandomly() {
     Vector3 direction = Random.onUnitSphere;
     direction.y = Mathf.Clamp(direction.y, 0.5f, 1f);
     float distance = 2 * Random.value + 1.5f;
     transform.localPosition = direction * distance;
   }
+
+  #region IGvrGazeResponder implementation
+
+  /// Called when the user is looking on a GameObject with this script,
+  /// as long as it is set to an appropriate layer (see GvrGaze).
+  public void OnGazeEnter() {
+    SetGazedAt(true);
+  }
+
+  /// Called when the user stops looking on the GameObject, after OnGazeEnter
+  /// was already called.
+  public void OnGazeExit() {
+    SetGazedAt(false);
+  }
+
+  /// Called when the viewer's trigger is used, between OnGazeEnter and OnGazeExit.
+  public void OnGazeTrigger() {
+    TeleportRandomly();
+  }
+
+  #endregion
 }
