@@ -53,12 +53,6 @@ public class GvrViewerEditor : Editor {
   public override void OnInspectorGUI() {
     GUI.changed = false;
 
-    // Add clickable script field, as would have been provided by DrawDefaultInspector()
-    MonoScript script = MonoScript.FromMonoBehaviour (target as MonoBehaviour);
-    EditorGUI.BeginDisabledGroup (true);
-    EditorGUILayout.ObjectField ("Script", script, typeof(MonoScript), false);
-    EditorGUI.EndDisabledGroup ();
-
     GUIStyle headingStyle = new GUIStyle(GUI.skin.label);
     headingStyle.fontStyle = FontStyle.Bold;
 
@@ -67,7 +61,7 @@ public class GvrViewerEditor : Editor {
     EditorGUILayout.LabelField("General Settings", headingStyle);
     gvrViewer.VRModeEnabled =
         EditorGUILayout.Toggle(vrModeLabel, gvrViewer.VRModeEnabled);
-   gvrViewer.DistortionCorrection = (GvrViewer.DistortionCorrectionMethod)
+    gvrViewer.DistortionCorrection = (GvrViewer.DistortionCorrectionMethod)
         EditorGUILayout.EnumPopup(distortionCorrectionLabel, gvrViewer.DistortionCorrection);
     float oldScale = gvrViewer.StereoScreenScale;
     float newScale = EditorGUILayout.Slider(stereoScreenScale, oldScale, 0.25f, 2.0f);

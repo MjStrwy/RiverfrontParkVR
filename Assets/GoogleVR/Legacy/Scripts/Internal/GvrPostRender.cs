@@ -12,10 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-/// This class is defined only the editor does not natively support GVR, or if the current
-/// VR player is the in-editor emulator.
-#if !UNITY_HAS_GOOGLEVR || UNITY_EDITOR
-
 using UnityEngine;
 
 /// Performs distortion correction on the rendered stereo screen.  This script
@@ -112,7 +108,6 @@ public class GvrPostRender : MonoBehaviour {
       meshMaterial.SetPass(0);
       Graphics.DrawMeshNow(distortionMesh, transform.position, transform.rotation);
     }
-
     stereoScreen.DiscardContents();
     if (!GvrViewer.Instance.NativeUILayerSupported) {
       DrawUILayer();
@@ -130,12 +125,7 @@ public class GvrPostRender : MonoBehaviour {
     distortionMesh.uv = tex;
     distortionMesh.colors = colors;
     distortionMesh.triangles = indices;
-
-#if !UNITY_5_5_OR_NEWER
-    // Optimize() is deprecated as of Unity 5.5.0p1.
-    distortionMesh.Optimize();
-#endif  // !UNITY_5_5_OR_NEWER
-
+    ;
     distortionMesh.UploadMeshData(true);
   }
 
@@ -351,5 +341,3 @@ public class GvrPostRender : MonoBehaviour {
   private void DrawVRBackButton() {
   }
 }
-
-#endif // !UNITY_HAS_GOOGLEVR || UNITY_EDITOR

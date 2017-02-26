@@ -12,9 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-/// This class is defined only if the editor does not natively support GVR, or if the current
-/// VR player is the in-editor emulator.
-
 using UnityEngine;
 
 /// Controls one camera of a stereo pair.  Each frame, it mirrors the settings of
@@ -68,28 +65,15 @@ public class GvrEye : MonoBehaviour {
     }
   }
 
-// C# stereo rendering is not used when UNITY_HAS_GOOGLEVR is true and this is running on a device.
-// Disable variable warnings in this case.
-#if UNITY_HAS_GOOGLEVR && !UNITY_EDITOR
-#pragma warning disable 649
-#pragma warning disable 414
-#endif  // UNITY_HAS_GOOGLEVR && !UNITY_EDITOR
-
   private StereoController controller;
   private StereoRenderEffect stereoEffect;
   private Camera monoCamera;
   private Matrix4x4 realProj;
   private float interpPosition = 1;
 
-#if UNITY_HAS_GOOGLEVR && !UNITY_EDITOR
-#pragma warning restore 414
-#pragma warning restore 649
-#endif  // UNITY_HAS_GOOGLEVR && !UNITY_EDITOR
-
   // Convenient accessor to the camera component used throughout this script.
   public Camera cam { get; private set; }
 
-#if !UNITY_HAS_GOOGLEVR || UNITY_EDITOR
   void Awake() {
     cam = GetComponent<Camera>();
   }
@@ -104,7 +88,7 @@ public class GvrEye : MonoBehaviour {
     // Save reference to the found controller and it's camera.
     controller = ctlr;
     monoCamera = controller.GetComponent<Camera>();
-    SetupStereo(/*forceUpdate=*/true);
+    UpdateStereoValues();
   }
 
   public void UpdateStereoValues() {
@@ -151,24 +135,24 @@ public class GvrEye : MonoBehaviour {
     }
   }
 
-  private void SetupStereo(bool forceUpdate) {
+  private void SetupStereo() {
     GvrViewer.Instance.UpdateState();
-
-    bool updateValues = forceUpdate  // Being called from Start(), most likely.
-        || controller.keepStereoUpdated  // Parent camera may be animating.
-        || GvrViewer.Instance.ProfileChanged  // New QR code.
-        || cam.targetTexture == null
-            && GvrViewer.Instance.StereoScreen != null ;  // Need to (re)assign targetTexture.
-    if (updateValues) {
-      // Set projection, viewport and targetTexture.
-      UpdateStereoValues();
-    }
 
     // Will need to update view transform if there is a COI, or if there is a remnant of
     // prior stereo-adjustment smoothing to finish off.
     bool haveCOI = controller.centerOfInterest != null
         && controller.centerOfInterest.gameObject.activeInHierarchy;
-    if (updateValues || haveCOI || interpPosition < 1) {
+    bool updatePosition = haveCOI || interpPosition < 1;
+
+    if (controller.keepStereoUpdated || GvrViewer.Instance.ProfileChanged
+        || cam.targetTexture == null && GvrViewer.Instance.StereoScreen != null) {
+      // Set projection and viewport.
+      UpdateStereoValues();
+      // Also view transform.
+      updatePosition = true;
+    }
+
+    if (updatePosition) {
       // Set view transform.
       float proj11 = cam.projectionMatrix[1, 1];
       float zScale = transform.lossyScale.z;
@@ -199,12 +183,8 @@ public class GvrEye : MonoBehaviour {
       cam.enabled = false;
       return;
     }
-    SetupStereo(/*forceUpdate=*/false);
-    bool doStereoEffect = GvrViewer.Instance.StereoScreen != null;
-#if UNITY_IOS
-    doStereoEffect &= !controller.directRender;
-#endif  // UNITY_IOS
-    if (doStereoEffect) {
+    SetupStereo();
+    if (!controller.directRender && GvrViewer.Instance.StereoScreen != null) {
       // Some image effects clobber the whole screen.  Add a final image effect to the chain
       // which restores side-by-side stereo.
       stereoEffect = GetComponent<StereoRenderEffect>();
@@ -303,5 +283,4 @@ public class GvrEye : MonoBehaviour {
 
     cam.rect = rect;
   }
-#endif  // !UNITY_HAS_GOOGLEVR || UNITY_EDITOR
 }

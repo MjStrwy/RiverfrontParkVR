@@ -200,7 +200,6 @@ public class GvrAudioSoundfield : MonoBehaviour {
       audioSources[channelSet].enabled = false;
       audioSources[channelSet].playOnAwake = false;
       audioSources[channelSet].bypassReverbZones = true;
-      audioSources[channelSet].dopplerLevel = 0.0f;
       audioSources[channelSet].spatialBlend = 0.0f;
       audioSources[channelSet].outputAudioMixerGroup = mixer.FindMatchingGroups("Master")[0];
     }
@@ -211,7 +210,7 @@ public class GvrAudioSoundfield : MonoBehaviour {
     for (int channelSet = 0; channelSet < audioSources.Length; ++channelSet) {
       audioSources[channelSet].enabled = true;
     }
-    if (playOnAwake && !isPlaying && InitializeSoundfield()) {
+    if (playOnAwake && !isPlaying) {
       Play();
     }
   }
@@ -235,23 +234,12 @@ public class GvrAudioSoundfield : MonoBehaviour {
     }
   }
 
-  void OnApplicationPause (bool pauseStatus) {
-    if (pauseStatus) {
-      Pause();
-    } else {
-      UnPause();
-    }
-  }
-
   void Update () {
     // Update soundfield.
     if (!isPlaying && !isPaused) {
       Stop();
     } else {
-      for (int channelSet = 0; channelSet < audioSources.Length; ++channelSet) {
-        audioSources[channelSet].SetSpatializerFloat((int) GvrAudio.SpatializerData.Gain,
-                                                     GvrAudio.ConvertAmplitudeFromDb(gainDb));
-      }
+      GvrAudio.UpdateAudioSoundfield(id, transform, gainDb);
     }
   }
 
@@ -277,27 +265,23 @@ public class GvrAudioSoundfield : MonoBehaviour {
 
   /// Plays the clip.
   public void Play () {
-    double dspTime = AudioSettings.dspTime;
-    PlayScheduled(dspTime);
+    if(audioSources != null && InitializeSoundfield()) {
+      double dspTime = AudioSettings.dspTime;
+      for (int channelSet = 0; channelSet < audioSources.Length; ++channelSet) {
+        audioSources[channelSet].PlayScheduled(dspTime);
+      }
+      isPaused = false;
+    }
   }
 
   /// Plays the clip with a delay specified in seconds.
   public void PlayDelayed (float delay) {
-    double delayedDspTime = AudioSettings.dspTime + (double)delay;
-    PlayScheduled(delayedDspTime);
-  }
-
-  /// Plays the clip at a specific time on the absolute time-line that AudioSettings.dspTime reads
-  /// from.
-  public void PlayScheduled (double time) {
-    if (audioSources != null && InitializeSoundfield()) {
+    if(audioSources != null && InitializeSoundfield()) {
+      double delayedDspTime = AudioSettings.dspTime + (double)delay;
       for (int channelSet = 0; channelSet < audioSources.Length; ++channelSet) {
-        audioSources[channelSet].PlayScheduled(time);
+        audioSources[channelSet].PlayScheduled(delayedDspTime);
       }
       isPaused = false;
-    } else {
-      Debug.LogWarning ("GVR Audio soundfield not initialized. Audio playback not supported " +
-                        "until after Awake() and OnEnable(). Try calling from Start() instead.");
     }
   }
 
@@ -327,6 +311,7 @@ public class GvrAudioSoundfield : MonoBehaviour {
     if (id < 0) {
       id = GvrAudio.CreateAudioSoundfield();
       if (id >= 0) {
+        GvrAudio.UpdateAudioSoundfield(id, transform, gainDb);
         for (int channelSet = 0; channelSet < audioSources.Length; ++channelSet) {
           InitializeChannelSet(audioSources[channelSet], channelSet);
         }
@@ -341,7 +326,7 @@ public class GvrAudioSoundfield : MonoBehaviour {
       for (int channelSet = 0; channelSet < audioSources.Length; ++channelSet) {
         ShutdownChannelSet(audioSources[channelSet], channelSet);
       }
-      GvrAudio.DestroyAudioSoundfield(id);
+      GvrAudio.DestroyAudioSource(id);
       id = -1;
     }
   }
@@ -349,24 +334,15 @@ public class GvrAudioSoundfield : MonoBehaviour {
   // Initializes given channel set of the soundfield.
   private void InitializeChannelSet(AudioSource source, int channelSet) {
     source.spatialize = true;
-    source.SetSpatializerFloat((int) GvrAudio.SpatializerData.Type,
-                               (float) GvrAudio.SpatializerType.Soundfield);
-    source.SetSpatializerFloat((int) GvrAudio.SpatializerData.NumChannels,
-                               (float) GvrAudio.numFoaChannels);
-    source.SetSpatializerFloat((int) GvrAudio.SpatializerData.ChannelSet, (float) channelSet);
-    source.SetSpatializerFloat((int) GvrAudio.SpatializerData.Gain,
-                               GvrAudio.ConvertAmplitudeFromDb(gainDb));
-    source.SetSpatializerFloat((int) GvrAudio.SpatializerData.ZeroOutput, 0.0f);
-    // Soundfield id must be set after all the spatializer parameters, to ensure that the soundfield
-    // is properly initialized before processing.
-    source.SetSpatializerFloat((int) GvrAudio.SpatializerData.Id, (float) id);
+    source.SetSpatializerFloat(0, (float)id);
+    source.SetSpatializerFloat(1, (float)GvrAudio.SpatializerType.Soundfield);
+    source.SetSpatializerFloat(2, (float)GvrAudio.numFoaChannels);
+    source.SetSpatializerFloat(3, (float)channelSet);
   }
 
   // Shuts down given channel set of the soundfield.
   private void ShutdownChannelSet(AudioSource source, int channelSet) {
-    source.SetSpatializerFloat((int) GvrAudio.SpatializerData.Id, -1.0f);
-    // Ensure that the output is zeroed after shutdown.
-    source.SetSpatializerFloat((int) GvrAudio.SpatializerData.ZeroOutput, 1.0f);
+    source.SetSpatializerFloat(0, -1.0f);
     source.spatialize = false;
   }
 }
