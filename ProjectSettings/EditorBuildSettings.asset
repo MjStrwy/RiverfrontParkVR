@@ -7,3 +7,7 @@ EditorBuildSettings:
   m_Scenes:
   - enabled: 1
     path: Assets/Diorama.unity
+  - enabled: 0
+    path: Assets/Scene/Modern.unity
+  - enabled: 0
+    path: Assets/Scene/ModernWithZombies.unity
